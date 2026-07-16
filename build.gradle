@@ -16,10 +16,10 @@ repositories {
     maven { url 'https://jitpack.io' }
 }
 
-// Mindustry v159.5 (latest stable as of 2026-07)
+// Mindustry v159.5 (v159.6 JitPack build failed, keep v159.5 until fixed)
 def mindustryVersion = 'v159.5'
-// Arc commit hash used by this Mindustry build
-def arcVersion = '7b92242511'
+// Arc commit hash updated to v159.6's archash (d72b19223f, compatible with v159.5)
+def arcVersion = 'd72b19223f'
 // Rhino version used by this Mindustry build
 def rhinoVersion = 'e74ac129d2bff72c1deb536d7d99a0dbb7046d2e'
 
