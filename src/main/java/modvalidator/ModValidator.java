@@ -34,7 +34,7 @@ public class ModValidator {
         long startTime = System.currentTimeMillis();
 
         try{
-            System.out.println("[ModValidator] Initializing headless environment with mod: " + modPath);
+            System.out.println("[验证器] 正在初始化无头环境，模组: " + modPath);
             env.initialize(modPath);
 
             LoadedMod mod = env.getImportedMod();
@@ -51,7 +51,7 @@ public class ModValidator {
 
             long loadTime = System.currentTimeMillis() - startTime;
             result.loadTimeMs = loadTime;
-            System.out.println("[ModValidator] Environment + mod ready in " + loadTime + "ms");
+            System.out.println("[验证器] 环境+模组准备完成，耗时 " + loadTime + "ms");
 
             if(env.hasContentErrors()){
                 Map<String, List<String>> errors = env.getContentErrors();
@@ -69,28 +69,40 @@ public class ModValidator {
                 result.addIssue(ValidationResult.Severity.WARN, "runtime-log", warn);
             }
 
-            System.out.println("[ModValidator] Running dynamic tests...");
+            System.out.println("[验证器] 正在运行动态测试...");
             long testStart = System.currentTimeMillis();
 
             ContentTester tester = new ContentTester(env, result);
             tester.runAllTests();
 
             result.testTimeMs = System.currentTimeMillis() - testStart;
-            System.out.println("[ModValidator] Tests completed in " + result.testTimeMs + "ms");
+            System.out.println("[验证器] 测试完成，耗时 " + result.testTimeMs + "ms");
 
         }catch(FileNotFoundException e){
+            if(result.modName == null){
+                LoadedMod m = env.getImportedMod();
+                if(m != null) result.modName = m.name;
+            }
             result.addIssue(ValidationResult.Severity.CRITICAL, "load",
-                "Mod file not found: " + e.getMessage());
+                "模组文件未找到: " + e.getMessage());
         }catch(TimeoutException e){
+            if(result.modName == null){
+                LoadedMod m = env.getImportedMod();
+                if(m != null) result.modName = m.name;
+            }
             result.addIssue(ValidationResult.Severity.CRITICAL, "load",
-                "Loading timed out: " + e.getMessage());
+                "加载超时: " + e.getMessage());
         }catch(Exception e){
+            if(result.modName == null){
+                LoadedMod m = env.getImportedMod();
+                if(m != null) result.modName = m.name;
+            }
             result.addIssue(ValidationResult.Severity.CRITICAL, "load",
-                "Unexpected error: " + e.getClass().getSimpleName() + ": " + e.getMessage());
+                "意外错误: " + e.getClass().getSimpleName() + ": " + e.getMessage());
             StringWriter sw = new StringWriter();
             e.printStackTrace(new PrintWriter(sw));
             result.addIssue(ValidationResult.Severity.INFO, "debug",
-                "Stack trace: " + sw.toString().substring(0, Math.min(2000, sw.toString().length())));
+                "堆栈跟踪: " + sw.toString().substring(0, Math.min(2000, sw.toString().length())));
         }
 
         return result;

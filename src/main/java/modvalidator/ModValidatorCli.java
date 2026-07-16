@@ -31,7 +31,7 @@ public class ModValidatorCli {
                     if(i + 1 < args.length){
                         outputFile = args[++i];
                     }else{
-                        System.err.println("Error: --output requires a file path");
+                        System.err.println("错误: --output 需要指定文件路径");
                         System.exit(1);
                     }
                     break;
@@ -43,7 +43,7 @@ public class ModValidatorCli {
                     if(!args[i].startsWith("-") && modPath == null){
                         modPath = args[i];
                     }else if(args[i].startsWith("-")){
-                        System.err.println("Unknown option: " + args[i]);
+                        System.err.println("未知选项: " + args[i]);
                         System.exit(1);
                     }
                     break;
@@ -51,7 +51,7 @@ public class ModValidatorCli {
         }
 
         if(modPath == null){
-            System.err.println("Error: No mod path specified. Use --help for usage info.");
+            System.err.println("错误: 未指定模组路径。使用 --help 查看用法。");
             System.exit(1);
         }
 
@@ -60,7 +60,7 @@ public class ModValidatorCli {
         ReportGenerator reportGen = new ReportGenerator();
 
         try{
-            System.out.println("Validating mod: " + modPath);
+            System.out.println("正在验证模组: " + modPath);
             System.out.println("========================================");
 
             ValidationResult result = validator.validate(modPath);
@@ -72,14 +72,14 @@ public class ModValidatorCli {
             // Write to file if requested
             if(outputFile != null){
                 reportGen.writeReport(result, outputFile, jsonOutput);
-                System.out.println("Report written to: " + outputFile);
+                System.out.println("报告已写入: " + outputFile);
             }
 
             // Exit code: 0 = passed, 1 = failed
             System.exit(result.hasErrors() ? 1 : 0);
 
         }catch(Exception e){
-            System.err.println("Fatal error: " + e.getMessage());
+            System.err.println("致命错误: " + e.getMessage());
             e.printStackTrace();
             System.exit(2);
         }finally{
@@ -88,26 +88,26 @@ public class ModValidatorCli {
     }
 
     private static void printHelp(){
-        System.out.println("Mindustry Mod Validator - Dynamic JSON/JS Content Tester");
+        System.out.println("Mindustry 模组验证器 - 动态 JSON/JS 内容测试工具");
         System.out.println();
-        System.out.println("Usage:");
-        System.out.println("  java -jar mod-validator.jar <mod-path> [options]");
+        System.out.println("用法:");
+        System.out.println("  java -jar mod-validator.jar <模组路径> [选项]");
         System.out.println();
-        System.out.println("Arguments:");
-        System.out.println("  <mod-path>       Path to mod file (.zip) or directory");
+        System.out.println("参数:");
+        System.out.println("  <模组路径>       模组文件(.zip)或目录的路径");
         System.out.println();
-        System.out.println("Options:");
-        System.out.println("  --json           Output report in JSON format");
-        System.out.println("  --output, -o     Write report to file");
-        System.out.println("  --help, -h       Show this help message");
+        System.out.println("选项:");
+        System.out.println("  --json           以 JSON 格式输出报告");
+        System.out.println("  --output, -o     将报告写入文件");
+        System.out.println("  --help, -h       显示此帮助信息");
         System.out.println();
-        System.out.println("Exit codes:");
-        System.out.println("  0  Validation passed");
-        System.out.println("  1  Validation failed (errors found)");
-        System.out.println("  2  Fatal error");
+        System.out.println("退出码:");
+        System.out.println("  0  验证通过");
+        System.out.println("  1  验证失败（发现错误）");
+        System.out.println("  2  致命错误");
         System.out.println();
-        System.out.println("Examples:");
-        System.out.println("  java -jar mod-validator.jar ./my-mod");
-        System.out.println("  java -jar mod-validator.jar ./my-mod.zip --json --output report.json");
+        System.out.println("示例:");
+        System.out.println("  java -jar mod-validator.jar ./我的模组");
+        System.out.println("  java -jar mod-validator.jar ./我的模组.zip --json --output 报告.json");
     }
 }

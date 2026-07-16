@@ -36,28 +36,28 @@ public class ContentTester {
             testBlocks();
         }catch(Exception e){
             result.addIssue(ValidationResult.Severity.ERROR, "block-test",
-                "Block testing crashed: " + e.getMessage());
+                "方块测试崩溃: " + e.getMessage());
         }
 
         try{
             testUnits();
         }catch(Exception e){
             result.addIssue(ValidationResult.Severity.ERROR, "unit-test",
-                "Unit testing crashed: " + e.getMessage());
+                "单位测试崩溃: " + e.getMessage());
         }
 
         try{
             testItems();
         }catch(Exception e){
             result.addIssue(ValidationResult.Severity.ERROR, "item-test",
-                "Item testing crashed: " + e.getMessage());
+                "物品测试崩溃: " + e.getMessage());
         }
 
         try{
             testLiquids();
         }catch(Exception e){
             result.addIssue(ValidationResult.Severity.ERROR, "liquid-test",
-                "Liquid testing crashed: " + e.getMessage());
+                "液体测试崩溃: " + e.getMessage());
         }
     }
 
@@ -70,7 +70,7 @@ public class ContentTester {
 
         if(blocks.isEmpty()){
             result.addIssue(ValidationResult.Severity.INFO, "block-test",
-                "No mod blocks found to test");
+                "未找到模组方块进行测试");
             return;
         }
 
@@ -91,11 +91,11 @@ public class ContentTester {
                 }
 
                 result.addIssue(ValidationResult.Severity.INFO, "block-test",
-                    "Block '" + block.name + "' placed and updated OK");
+                    "方块 '" + block.name + "' 放置并更新成功");
 
             }catch(Exception e){
                 result.addIssue(ValidationResult.Severity.ERROR, "block-test",
-                    "Block '" + block.name + "' crashed on update: " + e.getMessage());
+                    "方块 '" + block.name + "' 更新时崩溃: " + e.getMessage());
             }
 
             x++;
@@ -116,7 +116,7 @@ public class ContentTester {
 
         if(units.isEmpty()){
             result.addIssue(ValidationResult.Severity.INFO, "unit-test",
-                "No mod units found to test");
+                "未找到模组单位进行测试");
             return;
         }
 
@@ -138,11 +138,11 @@ public class ContentTester {
                 }
 
                 result.addIssue(ValidationResult.Severity.INFO, "unit-test",
-                    "Unit '" + unit.name + "' spawned and updated OK");
+                    "单位 '" + unit.name + "' 生成并更新成功");
 
             }catch(Exception e){
                 result.addIssue(ValidationResult.Severity.ERROR, "unit-test",
-                    "Unit '" + unit.name + "' crashed: " + e.getMessage());
+                    "单位 '" + unit.name + "' 崩溃: " + e.getMessage());
             }
         }
     }
@@ -156,7 +156,7 @@ public class ContentTester {
 
         if(items.isEmpty()){
             result.addIssue(ValidationResult.Severity.INFO, "item-test",
-                "No mod items found to test");
+                "未找到模组物品进行测试");
             return;
         }
 
@@ -164,14 +164,14 @@ public class ContentTester {
             try{
                 if(item.name == null || item.name.isEmpty()){
                     result.addIssue(ValidationResult.Severity.WARN, "item-test",
-                        "Item has empty name");
+                        "物品名称为空");
                 }else{
                     result.addIssue(ValidationResult.Severity.INFO, "item-test",
-                        "Item '" + item.name + "' loaded OK");
+                        "物品 '" + item.name + "' 加载成功");
                 }
             }catch(Exception e){
                 result.addIssue(ValidationResult.Severity.ERROR, "item-test",
-                    "Item '" + item.name + "' error: " + e.getMessage());
+                    "物品 '" + item.name + "' 错误: " + e.getMessage());
             }
         }
     }
@@ -185,7 +185,7 @@ public class ContentTester {
 
         if(liquids.isEmpty()){
             result.addIssue(ValidationResult.Severity.INFO, "liquid-test",
-                "No mod liquids found to test");
+                "未找到模组液体进行测试");
             return;
         }
 
@@ -193,14 +193,14 @@ public class ContentTester {
             try{
                 if(liquid.name == null || liquid.name.isEmpty()){
                     result.addIssue(ValidationResult.Severity.WARN, "liquid-test",
-                        "Liquid has empty name");
+                        "液体名称为空");
                 }else{
                     result.addIssue(ValidationResult.Severity.INFO, "liquid-test",
-                        "Liquid '" + liquid.name + "' loaded OK");
+                        "液体 '" + liquid.name + "' 加载成功");
                 }
             }catch(Exception e){
                 result.addIssue(ValidationResult.Severity.ERROR, "liquid-test",
-                    "Liquid '" + liquid.name + "' error: " + e.getMessage());
+                    "液体 '" + liquid.name + "' 错误: " + e.getMessage());
             }
         }
     }

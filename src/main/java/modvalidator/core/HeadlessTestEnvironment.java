@@ -3,10 +3,12 @@ package modvalidator.core;
 import arc.*;
 import arc.backend.headless.*;
 import arc.files.*;
+import arc.files.ZipFi;
 import arc.struct.*;
 import arc.util.*;
 import mindustry.*;
 import mindustry.core.*;
+import mindustry.core.Version;
 import mindustry.ctype.*;
 import mindustry.gen.*;
 import mindustry.mod.*;
@@ -36,7 +38,10 @@ public class HeadlessTestEnvironment {
     private final CopyOnWriteArrayList<String> allLogs = new CopyOnWriteArrayList<>();
     private LoadedMod importedMod = null;
 
-    private static void debugLog(String msg){
+    // The Mindustry major version this validator targets (matches build.gradle mindustryVersion)
+private static final int VALIDATOR_MINDUSTRY_MAJOR = 159;
+
+private static void debugLog(String msg){
         System.err.println(msg);
     }
 
@@ -79,7 +84,7 @@ public class HeadlessTestEnvironment {
             ApplicationCore core = new ApplicationCore(){
                 @Override
                 public void setup(){
-                    debugLog("[DEBUG] Phase 1: setup() START");
+                    debugLog("[调试] 阶段1: setup() 开始");
                     // Phase 1: Core systems (matches ServerLauncher.init())
                     Core.settings.setDataDirectory(testDataDir);
                     loadLocales = false;
@@ -87,7 +92,7 @@ public class HeadlessTestEnvironment {
 
                     Vars.loadSettings();
                     Vars.init();
-                    debugLog("[DEBUG] Phase 1: Vars.init() done");
+                    debugLog("[调试] 阶段1: Vars.init() 完成");
 
                     UI.loadColors();
                     Fonts.loadContentIconsHeadless();
@@ -115,7 +120,7 @@ public class HeadlessTestEnvironment {
                     Vars.maps = savedMaps;
                     mods.loadScripts();
 
-                    debugLog("[DEBUG] Phase 3: Import mod START");
+                    debugLog("[调试] 阶段3: 导入模组开始");
                     // Phase 3: Import mod BEFORE createModContent
                     if(modPath != null){
                         try{
@@ -129,15 +134,30 @@ public class HeadlessTestEnvironment {
                                     zipFile = modFile;
                                 }
                                 importedMod = Vars.mods.importMod(zipFile);
-                                debugLog("[DEBUG] importMod done, importedMod=" + (importedMod != null ? importedMod.name : "null"));
+                                debugLog("[调试] importMod 完成, importedMod=" + (importedMod != null ? importedMod.name : "null"));
                                 if(importedMod == null){
-                                    initError.compareAndSet(null, new RuntimeException("importMod returned null for: " + modPath));
+                                    initError.compareAndSet(null, new RuntimeException("importMod 返回 null: " + modPath));
+                                }else{
+                                    // Phase 3.3: Check mod.json minGameVersion against validator's Mindustry version
+                                    try{
+                                        ModMeta meta = Vars.mods.findMeta(importedMod.file.isDirectory() ? importedMod.file : new ZipFi(importedMod.file));
+                                        if(meta != null && meta.minGameVersion != null && !meta.minGameVersion.isEmpty() && !"0".equals(meta.minGameVersion)){
+                                            int modMinMajor = meta.getMinMajor();
+                                            if(modMinMajor > VALIDATOR_MINDUSTRY_MAJOR){
+                                                Log.warn("[验证器] 版本不匹配: 模组要求 Mindustry >= " + meta.minGameVersion + " (主版本: " + modMinMajor + "), 但验证器仅支持主版本 " + VALIDATOR_MINDUSTRY_MAJOR + "，可能导致加载失败");
+                                            }else{
+                                                debugLog("[调试] 版本检查通过: 模组最低=" + meta.minGameVersion + ", 验证器主版本=" + VALIDATOR_MINDUSTRY_MAJOR);
+                                            }
+                                        }
+                                    }catch(Throwable t){
+                                        debugLog("[调试] 版本检查跳过: " + t.getMessage());
+                                    }
                                 }
                             }else{
-                                initError.compareAndSet(null, new RuntimeException("Mod not found: " + modPath));
+                                initError.compareAndSet(null, new RuntimeException("模组未找到: " + modPath));
                             }
                         }catch(Throwable t){
-                            initError.compareAndSet(null, new RuntimeException("Failed to import mod: " + t.getMessage(), t));
+                            initError.compareAndSet(null, new RuntimeException("导入模组失败: " + t.getMessage(), t));
                         }
                     }
 
@@ -164,35 +184,35 @@ public class HeadlessTestEnvironment {
                                     }
                                 }
                             }
-                            debugLog("[DEBUG] Phase 3.4: Registered mod files to FileTree");
+                            debugLog("[调试] 阶段3.4: 已注册模组文件到文件树");
                         }catch(Throwable t){
-                            debugLog("[DEBUG] Phase 3.4: Error registering mod files: " + t);
+                            debugLog("[调试] 阶段3.4: 注册模组文件错误: " + t);
                         }
                     }
 
-                    debugLog("[DEBUG] Phase 3.5: loadScripts START, mods.list().size=" + mods.list().size);
+                    debugLog("[调试] 阶段3.5: loadScripts 开始, 模组数=" + mods.list().size);
                     // Phase 3.5: Load mod JS scripts (must run after importMod, before createModContent)
                     try{
-                        debugLog("[DEBUG] Before loadScripts");
+                        debugLog("[调试] loadScripts 之前");
                         mods.loadScripts();
-                        debugLog("[DEBUG] After loadScripts");
-                        debugLog("[DEBUG] Phase 3.5: loadScripts DONE");
+                        debugLog("[调试] loadScripts 之后");
+                        debugLog("[调试] 阶段3.5: loadScripts 完成");
                     }catch(Throwable t){
-                        Log.err("[Validator] loadScripts threw: " + t);
+                        Log.err("[验证器] loadScripts 抛出异常: " + t);
                         Log.err(t);
                     }
 
-                    debugLog("[DEBUG] Phase 4: createModContent START");
+                    debugLog("[调试] 阶段4: createModContent 开始");
                     // Phase 4: Create mod content (scans imported mods)
                     content.createModContent();
                     try{
                         int pc2 = content.getBy(ContentType.planet).size;
-                        debugLog("[DEBUG] Planet count: " + pc2);
+                        debugLog("[调试] 星球数量: " + pc2);
                         for(int i = 0; i < pc2; i++){
-                            debugLog("[DEBUG] Planet[" + i + "]: " + content.getBy(ContentType.planet).get(i).toString());
+                            debugLog("[调试] 星球[" + i + "]: " + content.getBy(ContentType.planet).get(i).toString());
                         }
                     }catch(Throwable t){
-                        debugLog("[DEBUG] Error listing planets: " + t);
+                        debugLog("[调试] 列出星球错误: " + t);
                     }
 
                     // Phase 5: Initialize content
@@ -204,13 +224,13 @@ public class HeadlessTestEnvironment {
                         for(LoadedMod mod : Vars.mods.list()){
                             if(mod.hasContentErrors()){
                                 for(Content cont : mod.erroredContent){
-                                    sb.append("Error in ").append(cont.minfo.sourceFile.path())
-                                      .append(": ").append(cont.minfo.baseError != null ? cont.minfo.baseError.getMessage() : "unknown").append("\n");
+                                    sb.append("错误位于 ").append(cont.minfo.sourceFile.path())
+                                      .append(": ").append(cont.minfo.baseError != null ? cont.minfo.baseError.getMessage() : "未知错误").append("\n");
                                 }
                             }
                         }
                         // Don't set initError - we want to continue so we can report errors
-                        errorLogs.add("Content errors detected:\n" + sb);
+                        errorLogs.add("检测到内容错误:\n" + sb);
                     }
 
                     // Phase 7: World + net + logic
@@ -254,13 +274,13 @@ public class HeadlessTestEnvironment {
             }
 
             if(!begins[0]){
-                throw new TimeoutException("Headless environment initialization timed out after 120s");
+                throw new TimeoutException("无头环境初始化超时（120秒）");
             }
 
             initialized.set(true);
 
         }catch(Throwable t){
-            throw new RuntimeException("Failed to initialize headless environment", t);
+            throw new RuntimeException("初始化无头环境失败", t);
         }
     }
 

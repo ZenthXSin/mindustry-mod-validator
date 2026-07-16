@@ -18,20 +18,20 @@ public class ReportGenerator {
     public String generateTextReport(ValidationResult result){
         StringBuilder sb = new StringBuilder();
         sb.append("========================================\n");
-        sb.append("  Mindustry Mod Validation Report\n");
+        sb.append("  Mindustry 模组验证报告\n");
         sb.append("========================================\n\n");
 
-        sb.append("Mod: ").append(result.modName != null ? result.modName : "(unknown)").append("\n");
-        sb.append("Path: ").append(result.modPath).append("\n");
-        sb.append("Time: ").append(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)).append("\n");
-        sb.append("Load time: ").append(result.loadTimeMs).append("ms\n");
-        sb.append("Test time: ").append(result.testTimeMs).append("ms\n");
-        sb.append("Status: ").append(result.hasErrors() ? "FAILED" : "PASSED").append("\n");
+        sb.append("模组: ").append(result.modName != null ? result.modName : "(未知)").append("\n");
+        sb.append("路径: ").append(result.modPath).append("\n");
+        sb.append("时间: ").append(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)).append("\n");
+        sb.append("加载耗时: ").append(result.loadTimeMs).append("ms\n");
+        sb.append("测试耗时: ").append(result.testTimeMs).append("ms\n");
+        sb.append("状态: ").append(result.hasErrors() ? "失败" : "通过").append("\n");
 
         sb.append("\n--- Summary ---\n");
-        sb.append("  Errors: ").append(result.errorCount()).append("\n");
-        sb.append("  Warnings: ").append(result.warnCount()).append("\n");
-        sb.append("  Info: ").append(result.infoCount()).append("\n");
+        sb.append("  错误: ").append(result.errorCount()).append("\n");
+        sb.append("  警告: ").append(result.warnCount()).append("\n");
+        sb.append("  信息: ").append(result.infoCount()).append("\n");
 
         if(!result.issues.isEmpty()){
             sb.append("\n--- Issues ---\n");
@@ -55,7 +55,7 @@ public class ReportGenerator {
         sb.append("  \"timestamp\": ").append(quote(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))).append(",\n");
         sb.append("  \"loadTimeMs\": ").append(result.loadTimeMs).append(",\n");
         sb.append("  \"testTimeMs\": ").append(result.testTimeMs).append(",\n");
-        sb.append("  \"status\": ").append(quote(result.hasErrors() ? "FAILED" : "PASSED")).append(",\n");
+        sb.append("  \"status\": ").append(quote(result.hasErrors() ? "失败" : "通过")).append(",\n");
         sb.append("  \"summary\": {\n");
         sb.append("    \"errors\": ").append(result.errorCount()).append(",\n");
         sb.append("    \"warnings\": ").append(result.warnCount()).append(",\n");
