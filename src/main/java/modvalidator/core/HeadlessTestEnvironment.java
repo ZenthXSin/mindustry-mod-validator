@@ -84,8 +84,19 @@ public class HeadlessTestEnvironment {
                     UI.loadColors();
                     Fonts.loadContentIconsHeadless();
 
-                    // Phase 2: Base content + mod scripts
-                    content.createBaseContent();
+                    // Phase 2: Base content (skip campaign/sector presets - not needed for mod validation)
+                    mindustry.ai.UnitCommand.loadAll();
+                    mindustry.content.TeamEntries.load();
+                    mindustry.content.Items.load();
+                    mindustry.ai.UnitStance.loadAll();
+                    mindustry.content.StatusEffects.load();
+                    mindustry.content.Liquids.load();
+                    mindustry.content.Bullets.load();
+                    mindustry.content.UnitTypes.load();
+                    mindustry.content.Blocks.load();
+                    mindustry.content.Loadouts.load();
+                    mindustry.content.Weathers.load();
+                    // Skip: Planets, SectorPresets, SerpuloTechTree, ErekirTechTree (require map files)
                     mods.loadScripts();
 
                     // Phase 3: Import mod BEFORE createModContent

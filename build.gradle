@@ -22,8 +22,6 @@ def mindustryVersion = 'v159.5'
 def arcVersion = '7b92242511'
 // Rhino version used by this Mindustry build
 def rhinoVersion = 'e74ac129d2bff72c1deb536d7d99a0dbb7046d2e'
-// Mindustry source assets directory (jitpack jars do NOT include resources)
-def mindustryAssetsDir = '/home/zenxsin/cow/源码和示例/Mindustry/core/assets'
 
 dependencies {
     // Mindustry core (contains all game content logic)
@@ -100,11 +98,9 @@ task fatJar(type: Jar){
     from {
         configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }
-    // jitpack Mindustry jars do NOT include resource files (locales, version.properties, bundles, etc.)
-    // We must manually bundle the Mindustry core assets so that Core.files.internal() can find them via classpath
-    from(fileTree(dir: mindustryAssetsDir)) {
-        into '/'
-    }
+    // Resources (version.properties, icons, scripts, baseparts) are in src/main/resources/
+    // and automatically included by the jar task. Fi.read() falls back to classpath
+    // via Fi.class.getResourceAsStream("/" + path) when internal files are not on disk.
     exclude('META-INF/**')
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     manifest {
