@@ -13,6 +13,7 @@ import mindustry.mod.*;
 import mindustry.mod.Mods.*;
 import mindustry.net.*;
 import mindustry.ui.*;
+import mindustry.maps.Maps;
 import mindustry.world.*;
 
 import java.util.*;
@@ -34,6 +35,11 @@ public class HeadlessTestEnvironment {
     private final CopyOnWriteArrayList<String> warnLogs = new CopyOnWriteArrayList<>();
     private final CopyOnWriteArrayList<String> allLogs = new CopyOnWriteArrayList<>();
     private LoadedMod importedMod = null;
+
+    private static void debugLog(String msg){
+        System.err.println(msg);
+    }
+
 
     public HeadlessTestEnvironment(Fi testDataDir){
         this.testDataDir = testDataDir;
@@ -73,6 +79,7 @@ public class HeadlessTestEnvironment {
             ApplicationCore core = new ApplicationCore(){
                 @Override
                 public void setup(){
+                    debugLog("[DEBUG] Phase 1: setup() START");
                     // Phase 1: Core systems (matches ServerLauncher.init())
                     Core.settings.setDataDirectory(testDataDir);
                     loadLocales = false;
@@ -80,6 +87,7 @@ public class HeadlessTestEnvironment {
 
                     Vars.loadSettings();
                     Vars.init();
+                    debugLog("[DEBUG] Phase 1: Vars.init() done");
 
                     UI.loadColors();
                     Fonts.loadContentIconsHeadless();
@@ -96,9 +104,18 @@ public class HeadlessTestEnvironment {
                     mindustry.content.Blocks.load();
                     mindustry.content.Loadouts.load();
                     mindustry.content.Weathers.load();
-                    // Skip: Planets, SectorPresets, SerpuloTechTree, ErekirTechTree (require map files)
+                    // Load vanilla planets/sectors/tech trees (needed for mod tech tree hooks like addToResearch)
+                    // Set maps=null so FileMapGenerator skips map loading (headless has no jar assets)
+                    Maps savedMaps = Vars.maps;
+                    Vars.maps = null;
+                    mindustry.content.Planets.load();
+                    mindustry.content.SectorPresets.load();
+                    mindustry.content.SerpuloTechTree.load();
+                    mindustry.content.ErekirTechTree.load();
+                    Vars.maps = savedMaps;
                     mods.loadScripts();
 
+                    debugLog("[DEBUG] Phase 3: Import mod START");
                     // Phase 3: Import mod BEFORE createModContent
                     if(modPath != null){
                         try{
@@ -112,6 +129,7 @@ public class HeadlessTestEnvironment {
                                     zipFile = modFile;
                                 }
                                 importedMod = Vars.mods.importMod(zipFile);
+                                debugLog("[DEBUG] importMod done, importedMod=" + (importedMod != null ? importedMod.name : "null"));
                                 if(importedMod == null){
                                     initError.compareAndSet(null, new RuntimeException("importMod returned null for: " + modPath));
                                 }
@@ -123,8 +141,59 @@ public class HeadlessTestEnvironment {
                         }
                     }
 
+                    // Phase 3.4: Register imported mod files to FileTree (buildFiles equivalent)
+                    if(importedMod != null && importedMod.root != null){
+                        try{
+                            String parentName = importedMod.file.isDirectory() ? null : (importedMod.root.parent() != null ? importedMod.root.name() : null);
+                            for(Fi file : importedMod.root.list()){
+                                if(file.isDirectory() && !file.name().equals("bundles") && !file.name().equals("sprites") && !file.name().equals("sprites-override") && !file.name().equals(".git")){
+                                    Seq<Fi> files = new Seq<>();
+                                    file.walk(f -> files.add(f));
+                                    for(Fi f : files){
+                                        if(!f.isDirectory()){
+                                            String path;
+                                            if(importedMod.file.isDirectory()){
+                                                path = f.path().substring(1 + importedMod.file.path().length());
+                                            }else if(parentName != null){
+                                                path = f.path().substring(parentName.length() + 1);
+                                            }else{
+                                                path = f.path();
+                                            }
+                                            Vars.tree.addFile(path, f);
+                                        }
+                                    }
+                                }
+                            }
+                            debugLog("[DEBUG] Phase 3.4: Registered mod files to FileTree");
+                        }catch(Throwable t){
+                            debugLog("[DEBUG] Phase 3.4: Error registering mod files: " + t);
+                        }
+                    }
+
+                    debugLog("[DEBUG] Phase 3.5: loadScripts START, mods.list().size=" + mods.list().size);
+                    // Phase 3.5: Load mod JS scripts (must run after importMod, before createModContent)
+                    try{
+                        Log.warn("[Validator] Before loadScripts");
+                        mods.loadScripts();
+                        Log.warn("[Validator] After loadScripts");
+                        debugLog("[DEBUG] Phase 3.5: loadScripts DONE");
+                    }catch(Throwable t){
+                        Log.err("[Validator] loadScripts threw: " + t);
+                        Log.err(t);
+                    }
+
+                    debugLog("[DEBUG] Phase 4: createModContent START");
                     // Phase 4: Create mod content (scans imported mods)
                     content.createModContent();
+                    try{
+                        int pc2 = content.getBy(ContentType.planet).size;
+                        debugLog("[DEBUG] Planet count: " + pc2);
+                        for(int i = 0; i < pc2; i++){
+                            debugLog("[DEBUG] Planet[" + i + "]: " + content.getBy(ContentType.planet).get(i).toString());
+                        }
+                    }catch(Throwable t){
+                        debugLog("[DEBUG] Error listing planets: " + t);
+                    }
 
                     // Phase 5: Initialize content
                     content.init();
