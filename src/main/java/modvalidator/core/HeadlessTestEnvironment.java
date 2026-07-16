@@ -173,9 +173,9 @@ public class HeadlessTestEnvironment {
                     debugLog("[DEBUG] Phase 3.5: loadScripts START, mods.list().size=" + mods.list().size);
                     // Phase 3.5: Load mod JS scripts (must run after importMod, before createModContent)
                     try{
-                        Log.warn("[Validator] Before loadScripts");
+                        debugLog("[DEBUG] Before loadScripts");
                         mods.loadScripts();
-                        Log.warn("[Validator] After loadScripts");
+                        debugLog("[DEBUG] After loadScripts");
                         debugLog("[DEBUG] Phase 3.5: loadScripts DONE");
                     }catch(Throwable t){
                         Log.err("[Validator] loadScripts threw: " + t);
