@@ -1,8 +1,10 @@
 package modvalidator.core;
 
 import arc.struct.*;
+import arc.util.*;
 import mindustry.*;
 import mindustry.core.*;
+import mindustry.core.GameState.*;
 import mindustry.ctype.*;
 import mindustry.game.*;
 import mindustry.gen.*;
@@ -116,6 +118,10 @@ public class ContentTester {
  return;
  }
 
+ // 无限火力 + 解除暂停，让方块真正工作
+ Vars.state.set(State.playing);
+ Vars.state.rules.infiniteResources = true;
+
  World world = env.world();
  int size = Math.max(16, blocks.size * 2 + 4);
  world.resize(size, size);
@@ -132,8 +138,11 @@ public class ContentTester {
  try{
  world.tile(x, y).setBlock(block, Team.get(0), 0);
 
- for(int i = 0; i < 3; i++){
+ // 跑 60 tick，每 tick 推进时间
+ for(int i = 0; i < 60; i++){
  if(world.tile(x, y).build != null){
+ Time.delta = 1f;
+ Time.update();
  world.tile(x, y).build.update();
  }
  }
@@ -157,49 +166,56 @@ public class ContentTester {
  /**
  * Test all units from the mod: spawn them, run update ticks.
  */
- @SuppressWarnings("unchecked")
- public void testUnits(){
- Seq<UnitType> units = new arc.struct.Seq<>();
- for(Content c : env.getContent(ContentType.unit)){
- if(c.minfo != null && c.minfo.mod != null) units.add((UnitType)c);
- }
- if(units.isEmpty()){
- result.addIssue(ValidationResult.Severity.INFO, "unit-test",
- "未找到模组单位进行测试");
- return;
- }
+    @SuppressWarnings("unchecked")
+    public void testUnits(){
+        Seq<UnitType> units = new arc.struct.Seq<>();
+        for(Content c : env.getContent(ContentType.unit)){
+            if(c.minfo != null && c.minfo.mod != null) units.add((UnitType)c);
+        }
+        if(units.isEmpty()){
+            result.addIssue(ValidationResult.Severity.INFO, "unit-test",
+                "未找到模组单位进行测试");
+            return;
+        }
 
- World world = env.world();
- // Ensure world is large enough for unit spawning
- if(world.width() < 10 || world.height() < 10){
- world.resize(64, 64);
- world.tiles.fill();
- }
+        // 无限火力 + 解除暂停，让单位 AI 驱动移动
+        Vars.state.set(State.playing);
+        Vars.state.rules.infiniteResources = true;
 
- long unitDeadline = System.currentTimeMillis() + 30000; // 30s 总超时
- for(UnitType unit : units){
- if(System.currentTimeMillis() > unitDeadline){
- result.addIssue(ValidationResult.Severity.WARN, "unit-test",
- "单位测试超时（30s），跳过剩余单位");
- break;
- }
- try{
- Unit spawned = unit.create(Team.get(0));
- spawned.set(10f, 10f);
- spawned.add();
+        World world = env.world();
+        // Ensure world is large enough for unit spawning
+        if(world.width() < 10 || world.height() < 10){
+            world.resize(64, 64);
+            world.tiles.fill();
+        }
 
- for(int i = 0; i < 5; i++){
- spawned.update();
- }
+        long unitDeadline = System.currentTimeMillis() + 30000; // 30s 总超时
+        for(UnitType unit : units){
+            if(System.currentTimeMillis() > unitDeadline){
+                result.addIssue(ValidationResult.Severity.WARN, "unit-test",
+                    "单位测试超时（30s），跳过剩余单位");
+                break;
+            }
+            try{
+                Unit spawned = unit.create(Team.get(0));
+                spawned.set(32f, 32f);
+                spawned.add();
 
- // success: silent
+                // 跑 60 tick，每 tick 推进时间，让 AI 驱动移动
+                for(int i = 0; i < 60; i++){
+                    Time.delta = 1f;
+                    Time.update();
+                    spawned.update();
+                }
 
- }catch(Throwable t){
- result.addIssue(ValidationResult.Severity.ERROR, "unit-test",
- "单位 '" + unit.name + "' 崩溃: " + t.getClass().getSimpleName() + ": " + t.getMessage());
- }
- }
- }
+                // success: silent
+
+            }catch(Throwable t){
+                result.addIssue(ValidationResult.Severity.ERROR, "unit-test",
+                    "单位 '" + unit.name + "' 崩溃: " + t.getClass().getSimpleName() + ": " + t.getMessage());
+            }
+        }
+    }
 
  /**
  * Test all items: verify they have valid icons and stats.
@@ -235,17 +251,17 @@ public class ContentTester {
  /**
  * Test all liquids: verify they have valid icons and stats.
  */
-    @SuppressWarnings("unchecked")
-    public void testLiquids(){
-        Seq<Liquid> liquids = new arc.struct.Seq<>();
-        for(Content c : env.getContent(ContentType.liquid)){
-            if(c.minfo != null && c.minfo.mod != null) liquids.add((Liquid)c);
-        }
-        if(liquids.isEmpty()){
-            result.addIssue(ValidationResult.Severity.INFO, "liquid-test",
-                "未找到模组液体进行测试");
-            return;
-        }
+ @SuppressWarnings("unchecked")
+ public void testLiquids(){
+ Seq<Liquid> liquids = new arc.struct.Seq<>();
+ for(Content c : env.getContent(ContentType.liquid)){
+ if(c.minfo != null && c.minfo.mod != null) liquids.add((Liquid)c);
+ }
+ if(liquids.isEmpty()){
+ result.addIssue(ValidationResult.Severity.INFO, "liquid-test",
+ "未找到模组液体进行测试");
+ return;
+ }
 
  for(Liquid liquid : liquids){
  try{
