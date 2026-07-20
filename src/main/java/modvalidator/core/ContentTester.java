@@ -67,42 +67,39 @@ public class ContentTester {
  }
  }
 
- /** Report lifecycle anomalies from ContentLifecycleMonitor. */
- private void reportLifecycleAnomalies(){
- // TODO: 待修复编译后重新接入
- // ContentLifecycleMonitor monitor = env.getLifecycleMonitor();
- // for(var anomaly : monitor.getAnomalies()){
- // result.addIssue(ValidationResult.Severity.WARN, "lifecycle",
- // anomaly.contentKey() + "#" + anomaly.fieldName() + ": " + anomaly.detail());
- // }
- }
+    /** Report lifecycle anomalies from ContentLifecycleMonitor. */
+    private void reportLifecycleAnomalies(){
+        ContentLifecycleMonitor monitor = env.getLifecycleMonitor();
+        for(var anomaly : monitor.getAnomalies()){
+            result.addIssue(ValidationResult.Severity.WARN, "lifecycle",
+                anomaly.contentKey() + "#" + anomaly.fieldName() + ": " + anomaly.detail());
+        }
+    }
 
- /** Report missing textures from TextureResourceMonitor. */
- private void reportTextureIssues(){
- // TODO: 待修复编译后重新接入
- // TextureResourceMonitor monitor = env.getTextureMonitor();
- // for(var missing : monitor.getMissing()){
- // result.addIssue(ValidationResult.Severity.ERROR, "texture-missing",
- // missing.contentType() + " '" + missing.contentName() + "' 缺少贴图: " + missing.textureName());
- // }
- // for(var warn : monitor.getWarnings()){
- // result.addIssue(ValidationResult.Severity.WARN, "texture-optional",
- // warn.contentType() + " '" + warn.contentName() + "' 可选贴图缺失: " + warn.textureName());
- // }
- }
+    /** Report missing textures from TextureResourceMonitor. */
+    private void reportTextureIssues(){
+        TextureResourceMonitor monitor = env.getTextureMonitor();
+        for(var missing : monitor.getMissing()){
+            result.addIssue(ValidationResult.Severity.ERROR, "texture-missing",
+                missing.contentType() + " '" + missing.contentName() + "' 缺少贴图: " + missing.textureName());
+        }
+        for(var warn : monitor.getWarnings()){
+            result.addIssue(ValidationResult.Severity.WARN, "texture-optional",
+                warn.contentType() + " '" + warn.contentName() + "' 可选贴图缺失: " + warn.textureName());
+        }
+    }
 
- /** Report render pipeline issues from RenderPipelineMonitor. */
- private void reportRenderIssues(){
- // TODO: 待修复编译后重新接入
- // RenderPipelineMonitor monitor = env.getRenderMonitor();
- // for(var issue : monitor.getIssues()){
- // var severity = (issue.type() == RenderPipelineMonitor.RenderIssueType.MISSING_TEXTURE)
- // ? ValidationResult.Severity.ERROR
- // : ValidationResult.Severity.WARN;
- // result.addIssue(severity, "render",
- // "方块 '" + issue.blockName() + "': " + issue.detail());
- // }
- }
+    /** Report render pipeline issues from RenderPipelineMonitor. */
+    private void reportRenderIssues(){
+        RenderPipelineMonitor monitor = env.getRenderMonitor();
+        for(var issue : monitor.getIssues()){
+            var severity = (issue.type() == RenderPipelineMonitor.RenderIssueType.MISSING_TEXTURE)
+                ? ValidationResult.Severity.ERROR
+                : ValidationResult.Severity.WARN;
+            result.addIssue(severity, "render",
+                "方块 '" + issue.blockName() + "': " + issue.detail());
+        }
+    }
 
  /**
  * Test all blocks from the mod: place them, run update ticks.
@@ -175,29 +172,29 @@ public class ContentTester {
  world.tiles.fill();
  }
 
-        long unitDeadline = System.currentTimeMillis() + 30000; // 30s 总超时
-        for(UnitType unit : units){
-            if(System.currentTimeMillis() > unitDeadline){
-                result.addIssue(ValidationResult.Severity.WARN, "unit-test",
-                    "单位测试超时（30s），跳过剩余单位");
-                break;
-            }
-            try{
-                Unit spawned = unit.create(Team.get(0));
-                spawned.set(10f, 10f);
-                spawned.add();
+ long unitDeadline = System.currentTimeMillis() + 30000; // 30s 总超时
+ for(UnitType unit : units){
+ if(System.currentTimeMillis() > unitDeadline){
+ result.addIssue(ValidationResult.Severity.WARN, "unit-test",
+ "单位测试超时（30s），跳过剩余单位");
+ break;
+ }
+ try{
+ Unit spawned = unit.create(Team.get(0));
+ spawned.set(10f, 10f);
+ spawned.add();
 
-                for(int i = 0; i < 5; i++){
-                    spawned.update();
-                }
+ for(int i = 0; i < 5; i++){
+ spawned.update();
+ }
 
-                // success: silent
+ // success: silent
 
-            }catch(Throwable t){
-                result.addIssue(ValidationResult.Severity.ERROR, "unit-test",
-                    "单位 '" + unit.name + "' 崩溃: " + t.getClass().getSimpleName() + ": " + t.getMessage());
-            }
-        }
+ }catch(Throwable t){
+ result.addIssue(ValidationResult.Severity.ERROR, "unit-test",
+ "单位 '" + unit.name + "' 崩溃: " + t.getClass().getSimpleName() + ": " + t.getMessage());
+ }
+ }
  }
 
  /**
