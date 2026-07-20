@@ -67,47 +67,49 @@ public class ContentTester {
  }
  }
 
-    /** Report lifecycle anomalies from ContentLifecycleMonitor. */
-    private void reportLifecycleAnomalies(){
-        ContentLifecycleMonitor monitor = env.getLifecycleMonitor();
-        for(var anomaly : monitor.getAnomalies()){
-            result.addIssue(ValidationResult.Severity.WARN, "lifecycle",
-                anomaly.contentKey() + "#" + anomaly.fieldName() + ": " + anomaly.detail());
-        }
-    }
+ /** Report lifecycle anomalies from ContentLifecycleMonitor. */
+ private void reportLifecycleAnomalies(){
+ ContentLifecycleMonitor monitor = env.getLifecycleMonitor();
+ for(var anomaly : monitor.getAnomalies()){
+ result.addIssue(ValidationResult.Severity.WARN, "lifecycle",
+ anomaly.contentKey() + "#" + anomaly.fieldName() + ": " + anomaly.detail());
+ }
+ }
 
-    /** Report missing textures from TextureResourceMonitor. */
-    private void reportTextureIssues(){
-        TextureResourceMonitor monitor = env.getTextureMonitor();
-        for(var missing : monitor.getMissing()){
-            result.addIssue(ValidationResult.Severity.ERROR, "texture-missing",
-                missing.contentType() + " '" + missing.contentName() + "' 缺少贴图: " + missing.textureName());
-        }
-        for(var warn : monitor.getWarnings()){
-            result.addIssue(ValidationResult.Severity.WARN, "texture-optional",
-                warn.contentType() + " '" + warn.contentName() + "' 可选贴图缺失: " + warn.textureName());
-        }
-    }
+ /** Report missing textures from TextureResourceMonitor. */
+ private void reportTextureIssues(){
+ TextureResourceMonitor monitor = env.getTextureMonitor();
+ for(var missing : monitor.getMissing()){
+ result.addIssue(ValidationResult.Severity.ERROR, "texture-missing",
+ missing.contentType() + " '" + missing.contentName() + "' 缺少贴图: " + missing.textureName());
+ }
+ for(var warn : monitor.getWarnings()){
+ result.addIssue(ValidationResult.Severity.WARN, "texture-optional",
+ warn.contentType() + " '" + warn.contentName() + "' 可选贴图缺失: " + warn.textureName());
+ }
+ }
 
-    /** Report render pipeline issues from RenderPipelineMonitor. */
-    private void reportRenderIssues(){
-        RenderPipelineMonitor monitor = env.getRenderMonitor();
-        for(var issue : monitor.getIssues()){
-            var severity = (issue.type() == RenderPipelineMonitor.RenderIssueType.MISSING_TEXTURE)
-                ? ValidationResult.Severity.ERROR
-                : ValidationResult.Severity.WARN;
-            result.addIssue(severity, "render",
-                "方块 '" + issue.blockName() + "': " + issue.detail());
-        }
-    }
+ /** Report render pipeline issues from RenderPipelineMonitor. */
+ private void reportRenderIssues(){
+ RenderPipelineMonitor monitor = env.getRenderMonitor();
+ for(var issue : monitor.getIssues()){
+ var severity = (issue.type() == RenderPipelineMonitor.RenderIssueType.MISSING_TEXTURE)
+ ? ValidationResult.Severity.ERROR
+ : ValidationResult.Severity.WARN;
+ result.addIssue(severity, "render",
+ "方块 '" + issue.blockName() + "': " + issue.detail());
+ }
+ }
 
  /**
  * Test all blocks from the mod: place them, run update ticks.
  */
  @SuppressWarnings("unchecked")
  public void testBlocks(){
- Seq<Block> blocks = (Seq<Block>)(Seq<?>)env.getContent(ContentType.block).select(b -> b.minfo.mod != null);
-
+ Seq<Block> blocks = new arc.struct.Seq<>();
+ for(Content c : env.getContent(ContentType.block)){
+ if(c.minfo != null && c.minfo.mod != null) blocks.add((Block)c);
+ }
  if(blocks.isEmpty()){
  result.addIssue(ValidationResult.Severity.INFO, "block-test",
  "未找到模组方块进行测试");
@@ -157,8 +159,10 @@ public class ContentTester {
  */
  @SuppressWarnings("unchecked")
  public void testUnits(){
- Seq<UnitType> units = (Seq<UnitType>)(Seq<?>)env.getContent(ContentType.unit).select(u -> u.minfo.mod != null);
-
+ Seq<UnitType> units = new arc.struct.Seq<>();
+ for(Content c : env.getContent(ContentType.unit)){
+ if(c.minfo != null && c.minfo.mod != null) units.add((UnitType)c);
+ }
  if(units.isEmpty()){
  result.addIssue(ValidationResult.Severity.INFO, "unit-test",
  "未找到模组单位进行测试");
@@ -202,8 +206,10 @@ public class ContentTester {
  */
  @SuppressWarnings("unchecked")
  public void testItems(){
- Seq<Item> items = (Seq<Item>)(Seq<?>)env.getContent(ContentType.item).select(i -> i.minfo.mod != null);
-
+ Seq<Item> items = new arc.struct.Seq<>();
+ for(Content c : env.getContent(ContentType.item)){
+ if(c.minfo != null && c.minfo.mod != null) items.add((Item)c);
+ }
  if(items.isEmpty()){
  result.addIssue(ValidationResult.Severity.INFO, "item-test",
  "未找到模组物品进行测试");
@@ -229,15 +235,17 @@ public class ContentTester {
  /**
  * Test all liquids: verify they have valid icons and stats.
  */
- @SuppressWarnings("unchecked")
- public void testLiquids(){
- Seq<Liquid> liquids = (Seq<Liquid>)(Seq<?>)env.getContent(ContentType.liquid).select(l -> l.minfo.mod != null);
-
- if(liquids.isEmpty()){
- result.addIssue(ValidationResult.Severity.INFO, "liquid-test",
- "未找到模组液体进行测试");
- return;
- }
+    @SuppressWarnings("unchecked")
+    public void testLiquids(){
+        Seq<Liquid> liquids = new arc.struct.Seq<>();
+        for(Content c : env.getContent(ContentType.liquid)){
+            if(c.minfo != null && c.minfo.mod != null) liquids.add((Liquid)c);
+        }
+        if(liquids.isEmpty()){
+            result.addIssue(ValidationResult.Severity.INFO, "liquid-test",
+                "未找到模组液体进行测试");
+            return;
+        }
 
  for(Liquid liquid : liquids){
  try{

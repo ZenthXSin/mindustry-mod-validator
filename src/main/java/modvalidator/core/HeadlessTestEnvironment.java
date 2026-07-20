@@ -213,6 +213,7 @@ private static void debugLog(String msg){
                         Log.err("[验证器] createModContent 崩溃: " + t.getClass().getSimpleName() + ": " + t.getMessage());
                         initError.compareAndSet(null, new RuntimeException("createModContent 阶段崩溃: " + t.getMessage(), t));
                     }
+                    debugLog("[调试] 单位数量: " + content.getBy(ContentType.unit).size + ", 方块数量: " + content.getBy(ContentType.block).size);
 
                     if(initError.get() == null){
                         try{
