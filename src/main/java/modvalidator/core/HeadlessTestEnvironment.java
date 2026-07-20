@@ -37,6 +37,10 @@ public class HeadlessTestEnvironment {
     private final CopyOnWriteArrayList<String> warnLogs = new CopyOnWriteArrayList<>();
     private final CopyOnWriteArrayList<String> allLogs = new CopyOnWriteArrayList<>();
     private LoadedMod importedMod = null;
+    // TODO: 待修复编译后重新接入
+    // private final ContentLifecycleMonitor lifecycleMonitor = new ContentLifecycleMonitor();
+    // private final TextureResourceMonitor textureMonitor = new TextureResourceMonitor();
+    // private final RenderPipelineMonitor renderMonitor = new RenderPipelineMonitor();
 
     // The Mindustry major version this validator targets (matches build.gradle mindustryVersion)
 private static final int VALIDATOR_MINDUSTRY_MAJOR = 159;
@@ -204,19 +208,63 @@ private static void debugLog(String msg){
 
                     debugLog("[调试] 阶段4: createModContent 开始");
                     // Phase 4: Create mod content (scans imported mods)
-                    content.createModContent();
                     try{
-                        int pc2 = content.getBy(ContentType.planet).size;
-                        debugLog("[调试] 星球数量: " + pc2);
-                        for(int i = 0; i < pc2; i++){
-                            debugLog("[调试] 星球[" + i + "]: " + content.getBy(ContentType.planet).get(i).toString());
-                        }
+                        content.createModContent();
                     }catch(Throwable t){
-                        debugLog("[调试] 列出星球错误: " + t);
+                        Log.err("[验证器] createModContent 崩溃: " + t.getClass().getSimpleName() + ": " + t.getMessage());
+                        initError.compareAndSet(null, new RuntimeException("createModContent 阶段崩溃: " + t.getMessage(), t));
+                    }
+
+                    if(initError.get() == null){
+                        try{
+                            int pc2 = content.getBy(ContentType.planet).size;
+                            debugLog("[调试] 星球数量: " + pc2);
+                            for(int i = 0; i < pc2; i++){
+                                debugLog("[调试] 星球[" + i + "]: " + content.getBy(ContentType.planet).get(i).toString());
+                            }
+                        }catch(Throwable t){
+                            debugLog("[调试] 列出星球错误: " + t);
+                        }
+
+                        // Phase 4.5: Capture post-create snapshots (before init)
+                        // TODO: lifecycleMonitor 待修复编译后重新接入
+                        // try{
+                        //     lifecycleMonitor.captureAll("post-create");
+                        // }catch(Throwable t){
+                        //     Log.err("[验证器] lifecycleMonitor.captureAll(post-create) 崩溃: " + t.getMessage());
+                        // }
                     }
 
                     // Phase 5: Initialize content
-                    content.init();
+                    if(initError.get() == null){
+                        try{
+                            content.init();
+                        }catch(Throwable t){
+                            Log.err("[验证器] content.init() 崩溃: " + t.getClass().getSimpleName() + ": " + t.getMessage());
+                            initError.compareAndSet(null, new RuntimeException("content.init() 阶段崩溃: " + t.getMessage(), t));
+                        }
+                    }
+
+                    // Phase 5.5-5.8: Analysis (only if init succeeded)
+                    // TODO: lifecycleMonitor/textureMonitor/renderMonitor 待修复编译后重新接入
+                    // if(initError.get() == null){
+                    //     try{
+                    //         lifecycleMonitor.captureAll("post-init");
+                    //         lifecycleMonitor.analyze();
+                    //     }catch(Throwable t){
+                    //         Log.err("[验证器] lifecycle 分析崩溃: " + t.getMessage());
+                    //     }
+                    //     try{
+                    //         textureMonitor.checkAll();
+                    //     }catch(Throwable t){
+                    //         Log.err("[验证器] texture 检查崩溃: " + t.getMessage());
+                    //     }
+                    //     try{
+                    //         renderMonitor.analyze();
+                    //     }catch(Throwable t){
+                    //         Log.err("[验证器] render 分析崩溃: " + t.getMessage());
+                    //     }
+                    // }
 
                     // Phase 6: Check for content errors
                     if(Vars.mods.hasContentErrors()){
@@ -234,22 +282,43 @@ private static void debugLog(String msg){
                     }
 
                     // Phase 7: World + net + logic
-                    world = new World(){
-                        @Override
-                        public float getDarkness(int x, int y){
-                            return 0;
-                        }
-                    };
-                    net = new Net(null);
+                    try{
+                        world = new World(){
+                            @Override
+                            public float getDarkness(int x, int y){
+                                return 0;
+                            }
+                        };
+                        net = new Net(null);
 
-                    Core.app.addListener(logic = new Logic());
-                    Core.app.addListener(netServer = new NetServer());
+                        // Default rules: infinite resources (无限火力)
+                        state.rules.infiniteResources = true;
+
+                        Core.app.addListener(logic = new Logic());
+                        Core.app.addListener(netServer = new NetServer());
+                    }catch(Throwable t){
+                        Log.err("[验证器] World/Net 初始化崩溃: " + t.getMessage());
+                        initError.compareAndSet(null, new RuntimeException("World/Net 初始化崩溃: " + t.getMessage(), t));
+                    }
 
                     // Phase 8: Base templates
-                    bases.load();
+                    if(initError.get() == null){
+                        try{
+                            bases.load();
+                        }catch(Throwable t){
+                            Log.err("[验证器] bases.load() 崩溃: " + t.getMessage());
+                        }
+                    }
 
                     // Phase 9: Mod init classes
-                    mods.eachClass(Mod::init);
+                    if(initError.get() == null){
+                        try{
+                            mods.eachClass(Mod::init);
+                        }catch(Throwable t){
+                            Log.err("[验证器] Mod.init() 崩溃: " + t.getMessage());
+                            initError.compareAndSet(null, new RuntimeException("Mod.init() 阶段崩溃: " + t.getMessage(), t));
+                        }
+                    }
                 }
 
                 @Override
@@ -335,6 +404,11 @@ private static void debugLog(String msg){
     public World world(){ return Vars.world; }
     public ContentLoader content(){ return Vars.content; }
     public Mods mods(){ return Vars.mods; }
+
+    // TODO: 待修复编译后重新接入
+    // public ContentLifecycleMonitor getLifecycleMonitor(){ return lifecycleMonitor; }
+    // public TextureResourceMonitor getTextureMonitor(){ return textureMonitor; }
+    // public RenderPipelineMonitor getRenderMonitor(){ return renderMonitor; }
 
     public void dispose(){
         if(initialized.get()){
